@@ -89,6 +89,24 @@ export function attachBattleDebug(scene: BattleScene): void {
     }
   };
   window.addEventListener('keydown', onKey);
+  // controle programático para testes E2E
+  (window as unknown as { __BATTLE_CTL__?: unknown }).__BATTLE_CTL__ = {
+    marker: DEBUG_PANEL_MARKER,
+    scene,
+    win: (): void => {
+      const mod = scene.sim.module as unknown as { complete?: boolean; enterArena?: (s: unknown) => void } | null;
+      if (!scene.sim.boss && mod?.enterArena) mod.enterArena(scene.sim);
+      const b = scene.sim.boss;
+      if (b) {
+        b.hp = 0;
+        b.knockout();
+      } else if (mod && 'complete' in mod) mod.complete = true;
+    },
+    retry: (): void => scene.retry(),
+    kill: (): void => {
+      for (const p of scene.sim.players) if (p.joined) p.die(scene.sim);
+    },
+  };
   scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => window.removeEventListener('keydown', onKey));
   scene.events.on(Phaser.Scenes.Events.POST_UPDATE, () => {
     if (st.slow) (scene as unknown as { stepper: { timeScale: number } }).stepper.timeScale = 0.25;

@@ -98,7 +98,10 @@ export class Menu {
     return !!(it && it.kind === 'button' && it.disabled?.());
   }
 
+  private destroyed = false;
+
   refresh(): void {
+    if (this.destroyed) return; // onSelect pode ter destruído este menu (troca de tela)
     // rolagem quando há muitas opções
     if (this.index < this.scrollTop) this.scrollTop = this.index;
     if (this.index >= this.scrollTop + this.maxVisible) this.scrollTop = this.index - this.maxVisible + 1;
@@ -197,7 +200,7 @@ export class Menu {
 
   /** Chamado a cada quadro pela cena dona (depois de InputService.poll()). */
   update(): void {
-    if (!this.enabled) return;
+    if (!this.enabled || this.destroyed) return;
     if (InputService.menu('up')) this.move(-1);
     else if (InputService.menu('down')) this.move(1);
     else if (InputService.menu('left')) this.adjust(-1);
@@ -210,6 +213,7 @@ export class Menu {
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.container.destroy(true);
   }
 

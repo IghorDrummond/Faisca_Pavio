@@ -43,6 +43,12 @@ async function boot(): Promise<void> {
     Logger.warn('Boot', 'fontes não carregaram a tempo');
   }
   setBootProgress(0.2, 'Montando o palco…');
+  if (__DEBUG__) {
+    // handles para testes E2E (removidos da build de produção)
+    const { GameState } = await import('./services/gameState');
+    const save = await import('./core/save');
+    (window as unknown as Record<string, unknown>).__FP__ = { AudioService, InputService, SettingsService, GameState, save };
+  }
   const { startGame } = await import('./game/GameApp');
   startGame(gameEl);
 }

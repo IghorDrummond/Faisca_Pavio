@@ -1,6 +1,6 @@
 import { test as base, expect, type Page } from '@playwright/test';
 
-/** Coleta erros e warnings do console e erros de página; falha o teste se houver. */
+/** Coleta erros e warnings do console e erros de página; testes falham se houver. */
 export const test = base.extend<{ consoleErrors: string[] }>({
   consoleErrors: async ({ page }, use) => {
     const errors: string[] = [];
@@ -15,13 +15,31 @@ export const test = base.extend<{ consoleErrors: string[] }>({
 });
 export { expect };
 
-export async function waitForScene(page: Page, key: string, timeout = 30_000): Promise<void> {
-  await page.waitForFunction(
-    (k) => {
-      const g = (window as unknown as { __GAME__?: { scene: { isActive(k: string): boolean } } }).__GAME__;
-      return !!g && g.scene.isActive(k);
-    },
-    key,
-    { timeout },
-  );
+type W = Window & {
+  __GAME__?: { scene: { isActive(k: string): boolean; getScene(k: string): unknown }; loop: { actualFps: number }; renderer: { type: number } };
+};
+
+export async function waitForScene(page: Page, key: string, timeout = 40_000): Promise<void> {
+  await page.waitForFunction((k) => !!(window as W).__GAME__ && (window as W).__GAME__!.scene.isActive(k), key, { timeout });
+}
+
+export async function isSceneActive(page: Page, key: string): Promise<boolean> {
+  return page.evaluate((k) => !!(window as W).__GAME__?.scene.isActive(k), key);
+}
+
+/** Espera a íris abrir e a cena ficar interativa. */
+export async function settle(page: Page, ms = 700): Promise<void> {
+  await page.waitForTimeout(ms);
+}
+
+/** Aperta uma tecla com tempo suficiente para ser lida por um tick. */
+export async function tap(page: Page, key: string, hold = 60): Promise<void> {
+  await page.keyboard.down(key);
+  await page.waitForTimeout(hold);
+  await page.keyboard.up(key);
+  await page.waitForTimeout(80);
+}
+
+export async function battle(page: Page): Promise<Record<string, unknown>> {
+  return page.evaluate(() => (window as unknown as { __BATTLE__?: Record<string, unknown> }).__BATTLE__ ?? {});
 }

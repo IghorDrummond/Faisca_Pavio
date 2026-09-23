@@ -37,6 +37,8 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.busy = false;
+    this.menu = null;
     this.add.rectangle(960, 540, 1920, 1080, 0x2a1210);
     const g = this.add.graphics();
     for (let i = 0; i < 16; i++) {

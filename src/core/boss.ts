@@ -105,8 +105,9 @@ export class AttackSelector {
       total += o.weight;
     }
     if (allowed.length === 0) {
-      // fallback: qualquer ataque diferente do último
-      for (const o of options) if (o.id !== last && attacks.has(o.id)) allowed.push(o), (total += Math.max(1, o.weight));
+      // fallback: respeitar combinações proibidas acima da regra de repetição (injustiça > variedade)
+      for (const o of options) if (attacks.has(o.id) && !lastDef?.cannotFollow?.includes(o.id)) allowed.push(o), (total += Math.max(1, o.weight));
+      if (allowed.length === 0) for (const o of options) if (o.id !== last && attacks.has(o.id)) allowed.push(o), (total += Math.max(1, o.weight));
       if (allowed.length === 0) return options[0]?.id ?? null;
     }
     let r = rng.next() * total;

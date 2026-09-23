@@ -80,7 +80,7 @@ export class RunGunModule implements StageModule {
     return this.coins.filter((c) => c.taken).map((c) => c.id);
   }
 
-  private enterArena(sim: BattleSim): void {
+  enterArena(sim: BattleSim): void {
     this.phase = 'arena';
     this.arenaEnteredTick = sim.tick;
     sim.clearEnemyStuff(false);

@@ -9,4 +9,9 @@ tmp/
 dist-e2e/
 public/packs/
 src/generated/
-tmp/
+
+# segredos e ambiente local
+.env
+.env.*
+!.env.example
+coverage/

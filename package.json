@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "setup": "npm run assets",
     "build": "npm run validate:data && tsc --noEmit && vite build && tsx tools/post-build.ts dist && npm run check:bundle",
     "build:e2e": "vite build --mode e2e && tsx tools/post-build.ts dist-e2e",
     "preview": "tsx tools/preview-server.ts --dir dist --port 4173",
@@ -18,10 +19,13 @@
     "validate:data": "tsx tools/validate-data.ts",
     "validate:balance": "tsx tools/validate-balance.ts",
     "check:bundle": "tsx tools/check-bundle.ts",
+    "bench:core": "tsx tools/bench-core.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:sim": "vitest run tests/simulation",
     "test:e2e": "npm run build:e2e && playwright test",
     "screenshots": "playwright test tests/e2e/screenshots.spec.ts --project=chromium"
   },

@@ -61,7 +61,7 @@ for (const [k, v] of Object.entries(packs)) {
   if (v > BUDGET_PACK) fail = true;
 }
 // ferramentas de debug não podem existir no bundle de produção
-const markers = ['debug-routes', 'debug-tools', '__BENCHMARK_SCENE__'];
+const markers = ['debug-routes', 'debug-tools', '__BENCHMARK_SCENE__', 'fp-test-api', '__FP_TEST__', '__BATTLE_CTL__'];
 for (const f of all.filter((x) => x.endsWith('.js'))) {
   const src = readFileSync(f, 'utf8');
   for (const mk of markers) {

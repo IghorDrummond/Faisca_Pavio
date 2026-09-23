@@ -25,6 +25,7 @@ export const EN: Partial<Record<keyof typeof PT_BR, string>> = {
   exitMap: 'Exit to map',
   exitMenu: 'Exit to menu',
   resume: 'Resume',
+  p2Leave: 'Player 2 leaves the game',
   paused: 'PAUSED',
   results: 'RESULTS',
   time: 'Time',

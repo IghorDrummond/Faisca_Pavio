@@ -167,6 +167,11 @@ export class BattleScene extends Phaser.Scene {
     Logger.info('Battle', `retry #${this.retries}`);
   }
 
+  /** Co-op drop-out: o P2 sai e o P1 volta ao perfil de teclado solo. */
+  leaveP2(): void {
+    if (this.sim.leavePlayer(1)) InputService.leavePlayer2();
+  }
+
   exitTo(target: 'map' | 'menu'): void {
     AudioService.setMuffled(false);
     AudioService.stopMusic(0.4);

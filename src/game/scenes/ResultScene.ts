@@ -127,6 +127,11 @@ export class ResultScene extends Phaser.Scene {
     void GameState.persist();
   }
 
+  /** contagem do ranking terminou e a tela já aceita Confirmar */
+  get acceptsInput(): boolean {
+    return this.done && this.time.now - this.shownAt > 300;
+  }
+
   private next(): void {
     if (!this.done) return;
     AudioService.stopMusic(0.4);
@@ -137,7 +142,7 @@ export class ResultScene extends Phaser.Scene {
 
   override update(): void {
     InputService.poll();
-    if (this.done && this.time.now - this.shownAt > 300 && (InputService.menu('confirm') || InputService.menu('back'))) this.next();
+    if (this.acceptsInput && (InputService.menu('confirm') || InputService.menu('back'))) this.next();
     InputService.endTick();
     void COLORS;
   }

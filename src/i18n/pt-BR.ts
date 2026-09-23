@@ -51,6 +51,7 @@ export const PT_BR = {
   exitMap: 'Sair para o mapa',
   exitMenu: 'Sair para o menu',
   resume: 'Continuar',
+  p2Leave: 'Jogador 2 sai da partida',
   paused: 'PAUSA',
   pausedReason_blur: 'Pausado: a janela perdeu o foco.',
   pausedReason_hidden: 'Pausado: a aba ficou oculta.',

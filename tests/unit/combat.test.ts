@@ -255,3 +255,29 @@ describe('vitória prevalece sobre morte no mesmo tick', () => {
     expect(sim.result).toBe('victory');
   });
 });
+
+describe('co-op: entrada e saída do P2', () => {
+  it('P2 entra no meio da partida com invulnerabilidade e sai sem encerrar a partida', () => {
+    const sim = emptyArena();
+    run(sim, 30);
+    sim.joinPlayer(1);
+    const p2 = sim.players[1]!;
+    expect(p2.joined).toBe(true);
+    expect(p2.alive).toBe(true);
+    expect(p2.invuln).toBeGreaterThan(0);
+    run(sim, 10, 0, Btn.Right);
+    expect(sim.leavePlayer(1)).toBe(true);
+    expect(p2.joined).toBe(false);
+    expect(p2.state).toBe('out');
+    run(sim, 30);
+    expect(sim.result).toBe('none');
+    expect(sim.players[0]!.alive).toBe(true);
+  });
+
+  it('o último jogador nunca pode sair', () => {
+    const sim = emptyArena();
+    run(sim, 5);
+    expect(sim.leavePlayer(0)).toBe(false);
+    expect(sim.players[0]!.joined).toBe(true);
+  });
+});

@@ -199,6 +199,15 @@ export class BattleSim implements SimHost, BossWorld {
     p.invuln = secToTicks(2);
   }
 
+  /** Jogador sai da partida (co-op drop-out); o parceiro continua. Nunca remove o último jogador. */
+  leavePlayer(i: number): boolean {
+    const p = this.players[i];
+    if (!p || !p.joined || this.players.filter((q) => q.joined).length < 2) return false;
+    p.joined = false;
+    p.forceState('out');
+    return true;
+  }
+
   // ---------------------------------------------------------------------------------------------
   // SimHost / BossWorld
 

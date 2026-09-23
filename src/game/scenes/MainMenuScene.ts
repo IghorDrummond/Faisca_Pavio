@@ -31,6 +31,8 @@ export class MainMenuScene extends Phaser.Scene {
   private heading!: Phaser.GameObjects.Text;
   private notice!: Phaser.GameObjects.Text;
   private busy = false;
+  /** lista de slots já lida do armazenamento (usado pela API de teste) */
+  slotsLoaded = false;
 
   constructor() {
     super('MainMenu');
@@ -39,6 +41,7 @@ export class MainMenuScene extends Phaser.Scene {
   create(): void {
     this.busy = false;
     this.menu = null;
+    this.slotsLoaded = false;
     this.add.rectangle(960, 540, 1920, 1080, 0x2a1210);
     const g = this.add.graphics();
     for (let i = 0; i < 16; i++) {
@@ -55,7 +58,10 @@ export class MainMenuScene extends Phaser.Scene {
     const song = SONGS.title;
     if (song && AudioService.sequencer.currentSong !== 'title') AudioService.playSong(song, 0);
     this.show('main');
-    void GameState.listSlots().then((s) => (this.slots = s));
+    void GameState.listSlots().then((s) => {
+      this.slots = s;
+      this.slotsLoaded = true;
+    });
     Router.reveal(this);
   }
 

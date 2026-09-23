@@ -49,6 +49,8 @@ export function startGame(parent: HTMLElement): void {
     },
   });
   (window as unknown as { __GAME__?: Phaser.Game }).__GAME__ = __DEBUG__ ? game : undefined;
+  const g = game;
+  if (__DEBUG__ && g) void import('./debug/testApi').then((m) => m.installTestApi(g));
 }
 
 export function bootDone(): void {

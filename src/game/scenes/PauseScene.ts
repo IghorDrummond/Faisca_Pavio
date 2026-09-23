@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { t } from '../../i18n';
 import { InputService } from '../../platform/input';
 import { COLORS, CSS, drawPanel, style, titleStyle } from '../../ui/theme';
-import { Menu } from '../../ui/Menu';
+import { Menu, type MenuItem } from '../../ui/Menu';
 import type { BattleScene } from './BattleScene';
 
 /** Pausa: Continuar, Tentar de novo, Opções, Sair para o mapa, Sair para o menu. */
@@ -30,13 +30,24 @@ export class PauseScene extends Phaser.Scene {
     const why = t(`pausedReason_${this.reason}` as never);
     if (why) this.add.text(960, 330, why, style(24, CSS.dim, { wordWrap: { width: 620 }, align: 'center' })).setOrigin(0.5);
     const fromMap = this.battle.params.from === 'map';
-    this.menu = new Menu(this, 960, 420, [
+    const items: MenuItem[] = [
       { kind: 'button', label: () => t('resume'), onSelect: () => this.battle.resume() },
       { kind: 'button', label: () => t('tryAgain'), onSelect: () => this.battle.retry() },
       { kind: 'button', label: () => t('options'), onSelect: () => this.openOptions() },
       { kind: 'button', label: () => t('exitMap'), onSelect: () => this.ask('map'), disabled: () => !fromMap },
       { kind: 'button', label: () => t('exitMenu'), onSelect: () => this.ask('menu') },
-    ], { width: 560, rowH: 84, fontSize: 40 });
+    ];
+    if (this.battle.sim.players[1]?.joined) {
+      items.splice(3, 0, {
+        kind: 'button',
+        label: () => t('p2Leave'),
+        onSelect: () => {
+          this.battle.leaveP2();
+          this.battle.resume();
+        },
+      });
+    }
+    this.menu = new Menu(this, 960, items.length > 5 ? 400 : 420, items, { width: 560, rowH: items.length > 5 ? 76 : 84, fontSize: 40 });
     this.menu.onBack = () => this.battle.resume();
   }
 
@@ -75,7 +86,7 @@ export class PauseScene extends Phaser.Scene {
   override update(): void {
     InputService.poll();
     if (this.confirm) this.confirm.update();
-    else if (this.menu.enabled && InputService.menu('pause')) this.battle.resume();
+    else if (this.menu.enabled && InputService.pauseOnly()) this.battle.resume();
     else this.menu.update();
     InputService.endTick();
   }

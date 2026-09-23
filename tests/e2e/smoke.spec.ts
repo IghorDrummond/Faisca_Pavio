@@ -1,12 +1,12 @@
-import { test, expect, waitForScene, settle, tap, isSceneActive } from './fixtures';
+import { test, expect, ready, tap, isSceneActive, battlePhase, frames } from './fixtures';
 
 test('TEST-30 abre sem erros, passa pela checagem de WebGL e chega ao título', async ({ page, consoleErrors }) => {
   await page.goto('/');
-  await waitForScene(page, 'Title');
+  await ready(page, 'Title');
   const r = await page.evaluate(() => (window as unknown as { __GAME__: { renderer: { type: number } } }).__GAME__.renderer.type);
   expect(r).toBe(2); // Phaser.WEBGL
   expect(await page.locator('#fatal').isHidden()).toBe(true);
-  await settle(page, 1000);
+  await frames(page, 60); // um segundo de animação do título sem erros
   expect(consoleErrors).toEqual([]);
 });
 
@@ -29,19 +29,18 @@ test('TEST-30b sem WebGL mostra tela amigável', async ({ browser }) => {
 
 test('TEST-31 interação desbloqueia o áudio (AudioContext "running")', async ({ page, consoleErrors }) => {
   await page.goto('/');
-  await waitForScene(page, 'Title');
+  await ready(page, 'Title');
   const before = await page.evaluate(() => (window as unknown as { __FP__: { AudioService: { state: string } } }).__FP__.AudioService.state);
   expect(before).toBe('none'); // nenhum contexto antes do gesto
   await page.mouse.click(640, 360);
   await page.waitForFunction(() => (window as unknown as { __FP__: { AudioService: { state: string } } }).__FP__.AudioService.state === 'running', null, { timeout: 10_000 });
-  await waitForScene(page, 'MainMenu');
+  await ready(page, 'MainMenu');
   expect(consoleErrors).toEqual([]);
 });
 
 test('TEST-35 teclas do jogo não rolam a página nem tiram o foco', async ({ page }) => {
   await page.goto('/?debug=1&boss=cuco&seed=1');
-  await waitForScene(page, 'Battle');
-  await settle(page, 1500);
+  await battlePhase(page, 'fight');
   const prevented = await page.evaluate(() => {
     const out: Record<string, boolean> = {};
     for (const code of ['ArrowDown', 'Space', 'ArrowUp', 'Tab', 'PageDown']) {
@@ -60,16 +59,15 @@ test('TEST-35 teclas do jogo não rolam a página nem tiram o foco', async ({ pa
 
 test('TEST-34 pausa automática ao perder foco e ao ocultar a aba', async ({ page }) => {
   await page.goto('/?debug=1&boss=cuco&seed=1');
-  await waitForScene(page, 'Battle');
-  await settle(page, 2500);
+  await battlePhase(page, 'fight');
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-  await waitForScene(page, 'Pause', 5000);
+  await ready(page, 'Pause', 5000);
   await tap(page, 'KeyP');
   await page.waitForFunction(() => !(window as unknown as { __GAME__: { scene: { isActive(k: string): boolean } } }).__GAME__.scene.isActive('Pause'));
   await page.evaluate(() => {
     Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
     document.dispatchEvent(new Event('visibilitychange'));
   });
-  await waitForScene(page, 'Pause', 5000);
+  await ready(page, 'Pause', 5000);
   expect(await isSceneActive(page, 'Pause')).toBe(true);
 });

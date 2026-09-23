@@ -1,0 +1,44 @@
+{
+  "name": "faisca-e-pavio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Run'n'gun de chefes 2D para navegador com estética de desenho animado dos anos 1930.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run validate:data && tsc --noEmit && vite build && node tools/post-build.ts",
+    "preview": "node tools/preview-server.ts",
+    "assets": "node tools/build-assets.ts",
+    "validate:data": "node tools/validate-data.ts",
+    "validate:balance": "node tools/validate-balance.ts",
+    "check:bundle": "node tools/check-bundle.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "screenshots": "playwright test tests/e2e/screenshots.spec.ts --project=chromium"
+  },
+  "dependencies": {
+    "phaser": "4.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "@resvg/resvg-js": "2.6.2",
+    "@types/node": "24.13.6",
+    "eslint": "10.11.0",
+    "eslint-config-prettier": "10.1.8",
+    "fake-indexeddb": "6.2.5",
+    "prettier": "3.9.9",
+    "sharp": "0.35.4",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.1",
+    "vite": "8.3.0",
+    "vitest": "5.0.1"
+  }
+}

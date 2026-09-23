@@ -31,7 +31,11 @@ export interface BossWorld extends HazardContext {
   onMusic(op: 'skip' | 'tempoUp', value: number): void;
   /** verificação de justiça: distância do jogador mais próximo ao ponto de surgimento */
   checkSpawnFairness(x: number, y: number, hasWarn: boolean): void;
+  requestHitstop(ticks: number): void;
 }
+
+/** Hit stop do nocaute (ticks). */
+export const KNOCKOUT_HITSTOP = 20;
 
 export class BossBody {
   id = '';
@@ -955,6 +959,7 @@ export class BossSim {
       }
     }
     this.world.clearEnemyStuff(true);
+    this.world.requestHitstop(KNOCKOUT_HITSTOP);
     this.world.events.push('bossKnockout', this.bodies[0]?.x ?? 960, this.bodies[0]?.y ?? 500);
   }
 

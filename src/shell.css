@@ -1,0 +1,45 @@
+:root {
+  --ink: #1b120c;
+  --paper: #efe2c4;
+  --accent: #d9542b;
+  --gold: #e8b64c;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: #0d0906;
+  color: var(--paper);
+  font-family: 'Josefin Sans', system-ui, sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+#app { position: fixed; inset: 0; }
+#game { position: absolute; inset: 0; outline: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+#game canvas { display: block; image-rendering: auto; }
+.boot {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, #3a2717 0%, #0d0906 75%); gap: 18px; z-index: 5;
+  transition: opacity 0.4s ease;
+}
+.boot.hide { opacity: 0; pointer-events: none; }
+.boot-title { font-family: 'Limelight', Georgia, serif; font-size: clamp(32px, 6vw, 72px); letter-spacing: 0.06em; margin: 0; color: var(--gold); text-shadow: 3px 3px 0 #000; }
+.boot-msg { margin: 0; font-size: clamp(14px, 2vw, 22px); }
+.boot-bar { width: min(420px, 70vw); height: 14px; border: 3px solid var(--paper); border-radius: 8px; overflow: hidden; }
+.boot-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.15s linear; }
+.rotate, .fatal, .noscript {
+  position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 24px; background: #120c08; color: var(--paper); font-size: 20px;
+}
+.rotate[hidden], .fatal[hidden] { display: none; }
+.fatal h1 { font-family: 'Limelight', Georgia, serif; color: var(--gold); font-size: clamp(28px, 5vw, 56px); margin: 0 0 12px; }
+.fatal p { max-width: 720px; line-height: 1.5; }
+.fatal-actions { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
+.fatal button {
+  font: inherit; font-size: 20px; padding: 12px 22px; border-radius: 10px; border: 3px solid var(--paper);
+  background: var(--accent); color: #fff; cursor: pointer;
+}
+.fatal button:focus-visible, .fatal a:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+.fatal a { color: var(--gold); }

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Faísca & Pavio — jogo de ação 2D com batalhas contra chefes em estilo de desenho animado antigo. Jogue no navegador." />
+    <meta name="theme-color" content="#1b120c" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <title>Faísca &amp; Pavio</title>
+    <link rel="stylesheet" href="/src/shell.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="Faísca e Pavio">
+      <div id="game" tabindex="0" aria-label="Área do jogo"></div>
+      <div id="boot" class="boot" role="status" aria-live="polite">
+        <p class="boot-title">FAÍSCA &amp; PAVIO</p>
+        <p class="boot-msg" id="boot-msg">Acendendo o projetor…</p>
+        <div class="boot-bar" aria-hidden="true"><div class="boot-fill" id="boot-fill"></div></div>
+      </div>
+      <div id="rotate" class="rotate" hidden>
+        <p>Gire o aparelho para a horizontal para jogar.</p>
+      </div>
+      <section id="fatal" class="fatal" hidden aria-labelledby="fatal-title" role="alertdialog">
+        <h1 id="fatal-title">Ops! O filme arrebentou.</h1>
+        <p id="fatal-msg"></p>
+        <div class="fatal-actions">
+          <button type="button" id="fatal-reload">Recarregar</button>
+          <button type="button" id="fatal-copy">Copiar relatório técnico</button>
+        </div>
+        <p class="fatal-links"><a href="/privacidade.html">Privacidade</a> · <a href="/licencas.html">Licenças</a></p>
+      </section>
+      <noscript><p class="noscript">Este jogo precisa de JavaScript habilitado para funcionar.</p></noscript>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

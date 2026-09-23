@@ -18,12 +18,14 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,
-  retries: 0,
+  retries: process.env.CI ? 1 : 0,
   reporter: [['list']],
   use: {
     baseURL: `http://localhost:${PORT}`,
     viewport: { width: 1280, height: 720 },
-    trace: 'off',
+    trace: 'retain-on-failure',
+    video: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
   webServer: {
     command: `npx tsx tools/preview-server.ts --dir dist-e2e --port ${PORT}`,

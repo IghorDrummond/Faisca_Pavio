@@ -22,7 +22,9 @@ export interface BenchmarkReport {
   p1Fps: number;
   p99FrameMs: number;
   avgFrameMs: number;
+  /** mínimo de projéteis ativos durante a medição (após o aquecimento) */
   projectiles: number;
+  avgProjectiles: number;
   drawCalls: number | null;
   renderer: string;
   heapMB: number | null;
@@ -37,6 +39,8 @@ export class BenchmarkScene extends Phaser.Scene {
   private last = 0;
   private start = 0;
   private frames: number[] = [];
+  /** projéteis ativos amostrados a cada quadro (depois de alimentar) */
+  private projSamples: number[] = [];
   private done = false;
   private text!: Phaser.GameObjects.Text;
 
@@ -74,7 +78,8 @@ export class BenchmarkScene extends Phaser.Scene {
       p.kind = KINDS[n % KINDS.length]!;
       p.parry = n % 11 === 0;
       p.warn = p.warnTotal = 0;
-      p.life = 600;
+      // vida longa: os projéteis ricocheteiam até o fim (carga constante; sem expiração em massa)
+      p.life = 1_000_000;
       p.age = 0;
       p.motion = Motion.Linear;
       p.spin = 2;
@@ -106,6 +111,7 @@ export class BenchmarkScene extends Phaser.Scene {
       this.sim.step();
       this.sim.events.clear();
     }
+    if (n > 0) this.projSamples.push(this.sim.enemyShots.activeCount);
     this.view.render(this.stepper.alpha, dt / 1000);
     this.film?.tick(dt);
     const elapsed = now - this.start;
@@ -116,6 +122,7 @@ export class BenchmarkScene extends Phaser.Scene {
   private finish(elapsed: number): void {
     this.done = true;
     const f = this.frames.slice(10).sort((a, b) => a - b);
+    const ps = this.projSamples.slice(10);
     const avg = f.reduce((a, b) => a + b, 0) / Math.max(1, f.length);
     const p99 = f[Math.floor(f.length * 0.99)] ?? avg;
     const p1 = 1000 / p99;
@@ -132,7 +139,8 @@ export class BenchmarkScene extends Phaser.Scene {
       p1Fps: Math.round(p1 * 10) / 10,
       p99FrameMs: Math.round(p99 * 100) / 100,
       avgFrameMs: Math.round(avg * 100) / 100,
-      projectiles: this.sim.enemyShots.activeCount,
+      projectiles: ps.length ? Math.min(...ps) : this.sim.enemyShots.activeCount,
+      avgProjectiles: ps.length ? Math.round(ps.reduce((a, b) => a + b, 0) / ps.length) : 0,
       drawCalls: r.renderNodes?.drawCallsThisFrame ?? null,
       renderer: dbg && gl ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'desconhecido',
       heapMB: mem ? Math.round((mem.usedJSHeapSize / 1048576) * 10) / 10 : null,

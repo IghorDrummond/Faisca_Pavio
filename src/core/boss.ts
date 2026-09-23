@@ -964,7 +964,7 @@ export class BossSim {
   }
 
   /** Força a próxima fase (debug). */
-  debugNextPhase(): void {
+  skipToNextPhase(): void {
     const next = this.def.phases[this.phaseIndex + 1];
     if (next) {
       this.hp = Math.min(this.hp, next.hpStart * this.maxHp - 1);
@@ -976,7 +976,7 @@ export class BossSim {
   }
 
   /** Força um ataque específico (debug). */
-  debugForceAttack(id: string): void {
+  forceAttack(id: string): void {
     const def = this.attacks.get(id);
     if (!def || this.state === 'transition' || this.state === 'knockout' || this.state === 'intro') return;
     this.startRun(this.run, def);
@@ -985,7 +985,7 @@ export class BossSim {
   }
 
   /** Pula direto para uma fase no início (debug / capturas). */
-  debugStartAtPhase(i: number): void {
+  startAtPhase(i: number): void {
     const ph = this.def.phases[i];
     if (!ph) return;
     this.hp = Math.floor(ph.hpStart * this.maxHp);

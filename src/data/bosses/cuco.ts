@@ -171,13 +171,13 @@ export const CUCO: BossDef = {
       telegraph: 0.55,
       telegraphAnim: 'windup',
       warnSound: 'warn_bell',
-      active: 3.4,
+      active: 3.8,
       recovery: 0.5,
       containsParry: false,
       actions: [
         { t: 0, do: 'anim', anim: 'attack', body: 'cage' },
-        { t: 0, do: 'hazard', hazard: { type: 'ring', kind: 'soundwave', x: 0, y: 0, body: 'cage', speed: 430, thickness: 42, gapDeg: 'random', gapChoices: [158, 136, 114], gapWidthDeg: 34, warn: 0.5, maxRadius: 2000 } },
-        { t: 1.3, do: 'hazard', hazard: { type: 'ring', kind: 'soundwave', x: 0, y: 0, body: 'cage', speed: 430, thickness: 42, gapDeg: 'random', gapChoices: [158, 136, 114], gapWidthDeg: 34, warn: 0.5, maxRadius: 2000 } },
+        { t: 0, do: 'hazard', hazard: { type: 'ring', kind: 'soundwave', x: 0, y: 0, body: 'cage', speed: 420, thickness: 42, gapDeg: 'random', gapChoices: [156, 140, 124], gapWidthDeg: 38, warn: 0.5, maxRadius: 2000 } },
+        { t: 1.6, do: 'hazard', hazard: { type: 'ring', kind: 'soundwave', x: 0, y: 0, body: 'cage', speed: 420, thickness: 42, gapDeg: 'random', gapChoices: [150, 138, 126], gapWidthDeg: 38, warn: 0.5, maxRadius: 2000 } },
       ],
     },
     {

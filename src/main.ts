@@ -9,6 +9,7 @@ import { Logger } from './services/logger';
 import { SettingsService } from './services/settings';
 import { InputService } from './platform/input';
 import { AudioService } from './services/audio';
+import { registerServiceWorker } from './platform/pwa';
 
 async function boot(): Promise<void> {
   installGlobalErrorHandlers();
@@ -23,6 +24,7 @@ async function boot(): Promise<void> {
     return;
   }
   SettingsService.load();
+  registerServiceWorker();
   const gameEl = document.getElementById('game');
   if (!gameEl) throw new Error('#game ausente');
   installPageGuards(gameEl);

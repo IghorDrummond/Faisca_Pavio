@@ -65,12 +65,12 @@ export function attachBattleDebug(scene: BattleScene): void {
         st.overlay = !st.overlay;
         break;
       case 'Digit4':
-        b?.debugNextPhase();
+        b?.skipToNextPhase();
         break;
       case 'Digit5':
         if (b) {
           const ids = b.phase.attacks.map((a) => a.id);
-          b.debugForceAttack(ids[attackCursor++ % ids.length] ?? '');
+          b.forceAttack(ids[attackCursor++ % ids.length] ?? '');
         }
         break;
       case 'Digit6':

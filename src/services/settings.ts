@@ -127,7 +127,7 @@ export function defaultSettings(): Settings {
   const reduced = prefersReducedMotion();
   return {
     renderScale: 1,
-    dprCap: 1.5,
+    dprCap: 1,
     postQuality: 'high',
     grain: 0.5,
     scratches: 0.5,

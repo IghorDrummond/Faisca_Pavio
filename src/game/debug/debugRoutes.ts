@@ -12,7 +12,10 @@ export const DEBUG_PANEL_MARKER = 'debug-routes';
 
 export function debugRoute(from: Phaser.Scene): void {
   if (Params.benchmark) {
-    Router.go(from, 'Benchmark', {}, ['ilha1']);
+    void import('../scenes/BenchmarkScene').then((m) => {
+      if (!from.game.scene.getScene('Benchmark')) from.game.scene.add('Benchmark', m.BenchmarkScene, false);
+      Router.go(from, 'Benchmark', {}, ['ilha1']);
+    });
     return;
   }
   if (Params.scene) {

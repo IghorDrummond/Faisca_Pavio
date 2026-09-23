@@ -17,4 +17,6 @@ export interface SimHost {
   /** limite visível da câmera (para despawn e limites) */
   viewLeft: number;
   viewRight: number;
+  /** debug/tutorial: jogadores não perdem vida (inclui quedas) */
+  invincible: boolean;
 }

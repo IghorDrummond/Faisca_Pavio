@@ -45,7 +45,7 @@ export interface StageModule {
   update(sim: BattleSim): void;
   collectTargets(sim: BattleSim, out: HitTarget[]): void;
   collectParryables(sim: BattleSim, out: ParryTarget[]): void;
-  onHit(sim: BattleSim, target: HitTarget, damage: number, owner: number): void;
+  onHit(sim: BattleSim, target: HitTarget, damage: number, owner: number, isEx: boolean): void;
   /** verifica dano de contato de inimigos no jogador */
   playerContact(sim: BattleSim, box: Aabb): boolean;
   isComplete(sim: BattleSim): boolean;
@@ -179,6 +179,14 @@ export class BattleSim implements SimHost, BossWorld {
     });
     this.boss?.reset();
     this.module?.reset(this);
+  }
+
+  /** Troca/define o chefe durante a partida (sala do mini-chefe do run'n'gun). */
+  setBoss(def: BossDef): void {
+    const joined = this.players.filter((p) => p.joined).length;
+    const hpMult = joined > 1 ? (this.config.coopHpMult ?? COOP_BOSS_HP_MULT) : 1;
+    this.boss = new BossSim(def, this.config.difficulty, hpMult, this);
+    this.music.reset(def.bpm ?? 120);
   }
 
   /** Jogador 2 entra no meio da partida (co-op drop-in). */
@@ -423,6 +431,11 @@ export class BattleSim implements SimHost, BossWorld {
 
   private readonly bossTargetPool: HitTarget[] = [];
 
+  /** Todas as partes do chefe (inclui as só de contato), para análises e bot. */
+  get bossPartBoxes(): readonly HitTarget[] {
+    return this.bossTargets;
+  }
+
   private applyForce(h: Hazard): void {
     for (const p of this.players) {
       if (!p.alive || p.state === 'dash') continue;
@@ -576,7 +589,7 @@ export class BattleSim implements SimHost, BossWorld {
       this.explodeShot(s);
       return;
     }
-    this.damageTarget(t, s.damage, s.owner, s.meterGain);
+    this.damageTarget(t, s.damage, s.owner, s.meterGain, s.isEx);
     this.events.push('hitBoss', s.x, s.y, s.damage, s.isEx ? 1 : 0, s.owner, s.kind);
   }
 
@@ -585,7 +598,7 @@ export class BattleSim implements SimHost, BossWorld {
     for (const t of this.targets) {
       if (!t.alive) continue;
       if (circleAabbRaw(s.x, s.y, s.explosionRadius, t.x, t.y, t.hw, t.hh)) {
-        this.damageTarget(t, s.damage, s.owner, s.meterGain);
+        this.damageTarget(t, s.damage, s.owner, s.meterGain, s.isEx);
         // um único golpe por explosão por dono (chefe multi-parte)
         if (t.owner === 'boss') break;
       }
@@ -621,7 +634,7 @@ export class BattleSim implements SimHost, BossWorld {
     }
   }
 
-  damageTarget(t: HitTarget, dmg: number, owner: number, meterGain: number): void {
+  damageTarget(t: HitTarget, dmg: number, owner: number, meterGain: number, isEx = false): void {
     const amount = dmg * t.mult;
     if (t.owner === 'boss') {
       if (this.boss && this.boss.damage(amount, t.bodyId)) {
@@ -632,7 +645,7 @@ export class BattleSim implements SimHost, BossWorld {
         }
       }
     } else if (this.module) {
-      this.module.onHit(this, t, amount, owner);
+      this.module.onHit(this, t, amount, owner, isEx);
       const p = this.players[owner];
       if (p && meterGain > 0) p.addMeter(amount * meterGain * 2, this);
     }

@@ -70,7 +70,7 @@ export class BattleScene extends Phaser.Scene {
     this.title = setup.title;
     this.quote = setup.quote;
     if (Params.invincible) this.sim.invincible = true;
-    if (this.params.phase && this.params.phase > 1 && this.sim.boss) this.sim.boss.debugStartAtPhase(this.params.phase - 1);
+    if (this.params.phase && this.params.phase > 1 && this.sim.boss) this.sim.boss.startAtPhase(this.params.phase - 1);
     this.sim.beatProvider = () => AudioService.musicBeat();
     this.sim.onMusicHook = (op, v) => {
       if (op === 'skip') AudioService.sequencer.skip(v);
@@ -153,7 +153,7 @@ export class BattleScene extends Phaser.Scene {
     this.paused = false;
     AudioService.setMuffled(false);
     this.sim.reset(this.params.seed + this.retries);
-    if (this.params.phase && this.params.phase > 1 && this.sim.boss) this.sim.boss.debugStartAtPhase(this.params.phase - 1);
+    if (this.params.phase && this.params.phase > 1 && this.sim.boss) this.sim.boss.startAtPhase(this.params.phase - 1);
     if (Params.invincible) this.sim.invincible = true;
     this.view.reset();
     this.stepper.reset();
@@ -223,7 +223,6 @@ export class BattleScene extends Phaser.Scene {
     this.view.render(this.stepper.alpha, frameMs / 1000);
     const cam = this.cameras.main;
     cam.setScroll(-this.view.shake.x, -this.view.shake.y);
-    cam.setRotation(this.view.shake.angle);
     this.film?.tick(frameMs);
   }
 

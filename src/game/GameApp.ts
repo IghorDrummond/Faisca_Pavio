@@ -4,6 +4,7 @@ import { hideBoot, setBootProgress } from '../platform/shell';
 import { installLifecycle } from '../platform/lifecycle';
 import { Logger } from '../services/logger';
 import { SCENES } from './scenes/registry';
+import { installRenderScale } from './renderScale';
 
 let game: Phaser.Game | null = null;
 
@@ -43,6 +44,7 @@ export function startGame(parent: HTMLElement): void {
         Logger.info('Game', `Phaser ${Phaser.VERSION} iniciado (${g.renderer.type === Phaser.WEBGL ? 'WebGL' : 'Canvas'})`);
         setBootProgress(0.4);
         installLifecycle(g);
+        installRenderScale(g);
       },
     },
   });

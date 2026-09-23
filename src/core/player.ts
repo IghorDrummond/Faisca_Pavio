@@ -690,7 +690,7 @@ export class PlayerSim {
   private fallIntoPit(host: SimHost): void {
     host.events.push('fell', this.x, host.geo.killY, 0, 0, this.index);
     this.fellCount++;
-    if (this.superInvuln === 0) {
+    if (this.superInvuln === 0 && !host.invincible) {
       if (this.firstHitFree) {
         this.firstHitFree = false;
         host.events.push('luckyBlock', this.x, this.y - 80, 0, 0, this.index);

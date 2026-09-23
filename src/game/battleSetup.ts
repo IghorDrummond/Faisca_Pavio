@@ -5,6 +5,7 @@ import type { DifficultyId } from '../core/types';
 import { BOSSES } from '../data/bosses';
 import { SettingsService } from '../services/settings';
 import { createStage, STAGE_INFO } from './stages';
+import './stageRegistry';
 
 export interface BattleParams {
   kind: 'boss' | 'stage';

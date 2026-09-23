@@ -28,6 +28,8 @@ export class BotBrain {
     // alvo para mirar
     let tx = 1500;
     let ty = 500;
+    let tHH = 60;
+    let tHW = 60;
     let best = Infinity;
     for (const t of sim.targets) {
       if (!t.alive) continue;
@@ -36,11 +38,17 @@ export class BotBrain {
         best = d;
         tx = t.x;
         ty = t.y;
+        tHH = t.hh;
+        tHW = t.hw;
       }
     }
     if (p.mode === 'plane') return bits | this.planeMove(sim, pi, ty);
     if (this.dashCd > 0) this.dashCd--;
     if (this.parryCd > 0) this.parryCd--;
+    const mod = sim.module as unknown as { stations?: { goal: string; done: boolean; signX: number }[]; stars?: { alive: boolean; pt: { x: number; y: number } }[] } | null;
+    if (mod?.stations) return this.tutorial(sim, pi, mod.stations, mod.stars ?? []);
+    if (sim.module && !sim.module.scrolling && !sim.boss) return this.parryHunter(sim, pi);
+    if (sim.module?.scrolling && !sim.boss) return this.runner(sim, pi, bits, tx, ty);
 
     // escolhe a melhor coluna x (perigo previsto mínimo, preferindo ficar perto)
     this.retarget--;
@@ -55,7 +63,12 @@ export class BotBrain {
         // evitar encostar no chefe
         let body = 0;
         for (const t of sim.targets) if (t.owner === 'boss' && Math.abs(t.x - x) < t.hw + 90 && t.y + t.hh > sim.floorY - 200) body += 50;
-        const score = dg * 10 + body + Math.abs(x - p.x) * 0.01 + Math.abs(x - 600) * 0.002;
+        // posição com linha de tiro em uma das 8 direções (horizontal, diagonal ou vertical)
+        const dxA = Math.abs(tx - x);
+        const dyA = sim.floorY - 80 - ty;
+        const band = Math.max(40, tHH * 0.8);
+        const aimOk = Math.abs(dyA) < band || Math.abs(dxA - dyA) < band * 1.4 || dxA < Math.max(40, tHW * 0.8);
+        const score = dg * 10 + body + (aimOk ? 0 : 3) + Math.abs(x - p.x) * 0.01 + Math.abs(x - 600) * 0.002;
         if (score < bestScore) {
           bestScore = score;
           bestX = x;
@@ -113,15 +126,173 @@ export class BotBrain {
     // mira: 8 direções em direção ao alvo
     const ax = tx - p.x;
     const ay = ty - (p.y - 80);
-    const ang = Math.atan2(ay, ax);
-    const deg = (ang * 180) / Math.PI;
-    if (deg < -60 && deg > -120) bits |= Btn.Up;
-    else if (deg <= -20 && deg >= -60) bits |= Btn.Up;
-    else if (deg <= -120 && deg >= -160) bits |= Btn.Up;
-    // atirar parado para cima-diagonal usa lock quando o alvo está alto
-    if (ay < -250 && Math.abs(dx) <= 18 && p.grounded) bits |= Btn.Lock | (ax > 0 ? Btn.Right : Btn.Left);
+    // setor de 45° mais alinhado ao alvo (0 = horizontal, 1 = diagonal, 2 = vertical)
+    const elev = (Math.atan2(-ay, Math.abs(ax)) * 180) / Math.PI;
+    const sector = elev > 67.5 ? 2 : elev > 22.5 ? 1 : 0;
+    const toward = ax >= 0 ? Btn.Right : Btn.Left;
+    const moving = Math.abs(dx) > 18;
+    if (sector === 2) {
+      if (!moving && p.grounded) bits = (bits & ~(Btn.Left | Btn.Right)) | Btn.Up;
+      else bits |= Btn.Up;
+    } else if (sector === 1) {
+      if (!moving && p.grounded) bits = (bits & ~(Btn.Left | Btn.Right)) | Btn.Lock | Btn.Up | toward;
+      else if ((bits & toward) !== 0) bits |= Btn.Up;
+    } else if (!moving && p.grounded && p.facing !== (ax >= 0 ? 1 : -1)) {
+      // virar para o alvo sem sair do lugar
+      bits |= Btn.Lock | toward;
+    }
     // EX / super quando houver cartas
     if (p.cards >= 5 || (p.cards >= 2 && sim.tick % 240 === 0)) bits |= sim.tick % 2 ? Btn.Ex : 0;
+    return bits;
+  }
+
+  /** Desafios de parry: vai para baixo do alvo ciano mais próximo, pula e aperta pulo de novo encostando. */
+  private parryHunter(sim: BattleSim, pi: number): number {
+    const p = sim.players[pi]!;
+    let bits = 0;
+    let best: { x: number; y: number } | null = null;
+    let bd = Infinity;
+    const consider = (x: number, y: number, vx: number): void => {
+      // antecipa a posição (projéteis andando)
+      const fx = x + vx * 0.35;
+      const d = Math.abs(fx - p.x) + Math.abs(y - p.y) * 0.3;
+      if (d < bd) {
+        bd = d;
+        best = { x: fx, y };
+      }
+    };
+    for (const pt of sim.parryables) consider(pt.x, pt.y, 0);
+    for (const s of sim.enemyShots.items) if (s.active && s.parry && s.warn === 0) consider(s.x, s.y, s.vx);
+    const tgt = best as { x: number; y: number } | null;
+    if (tgt) {
+      if (tgt.x > p.x + 20) bits |= Btn.Right;
+      else if (tgt.x < p.x - 20) bits |= Btn.Left;
+      const near = Math.abs(tgt.x - p.x) < 110;
+      if (p.grounded && near && tgt.y < p.y - 60) this.jumpHold = tgt.y < p.y - 300 ? 30 : 12;
+      if (!p.grounded && this.parryCd === 0 && Math.abs(tgt.x - p.x) < 80 && Math.abs(tgt.y - (p.y - 70)) < 100) {
+        this.parryCd = 16;
+        this.jumpHold = 0;
+        return bits | Btn.Jump;
+      }
+    }
+    // evita projéteis comuns
+    if (p.grounded && this.danger(sim, p.x, p.y, false, 12) > 0) this.jumpHold = Math.max(this.jumpHold, 16);
+    if (this.jumpHold > 0) {
+      bits |= Btn.Jump;
+      this.jumpHold--;
+    }
+    return bits;
+  }
+
+  /** Run'n'gun: avança para a direita pulando fossos/obstáculos e desviando do perigo imediato. */
+  private runner(sim: BattleSim, pi: number, base: number, tx: number, ty: number): number {
+    const p = sim.players[pi]!;
+    let bits = base | Btn.Right;
+    const geo = sim.geo;
+    const ahead = p.x + 70;
+    const groundAhead = geo.groundTopAt(ahead, 10, p.y);
+    const hasPlatformAhead = geo.platforms.some((pl) => pl.active && ahead > pl.x && ahead < pl.x + pl.w && Math.abs(pl.y - p.y) < 4);
+    const pitAhead = groundAhead > p.y + 10 && !hasPlatformAhead;
+    let blockAhead = false;
+    for (const s of geo.solids) if (s.x > p.x && s.x < p.x + 90 && s.y < p.y - 4 && s.y > p.y - 260) blockAhead = true;
+    if (p.grounded && (pitAhead || blockAhead)) this.jumpHold = 26;
+    // dash no ar para cruzar fossos largos
+    if (!p.grounded && p.vy > 0 && geo.groundTopAt(p.x, 10, p.y) === Infinity && p.airDash && this.dashCd === 0) {
+      bits |= Btn.Dash;
+      this.dashCd = 30;
+    }
+    if (p.grounded && this.danger(sim, p.x, p.y, false, 12) > 0 && this.danger(sim, p.x, p.y, true, 12) === 0) bits = (bits & ~Btn.Right) | Btn.Down;
+    else if (p.grounded && this.danger(sim, p.x + 40, p.y, false, 16) > 1) this.jumpHold = Math.max(this.jumpHold, 20);
+    if (this.jumpHold > 0) {
+      bits |= Btn.Jump;
+      this.jumpHold--;
+    }
+    // mira nos inimigos (alto → diagonal)
+    if (ty < p.y - 250 && Math.abs(tx - p.x) < 500) bits |= Btn.Up;
+    // parry em balões/projéteis cianos próximos
+    if (!p.grounded && this.parryCd === 0) {
+      for (const pt of sim.parryables) {
+        if (Math.abs(pt.x - p.x) < 90 && Math.abs(pt.y - (p.y - 70)) < 110) {
+          this.parryCd = 20;
+          return bits | Btn.Jump;
+        }
+      }
+    }
+    if (p.cards >= 1 && sim.tick % 200 === 0) bits |= Btn.Ex;
+    return bits;
+  }
+
+  /** Tutorial: cumpre o objetivo da estação atual. */
+  private tutorial(sim: BattleSim, pi: number, stations: { goal: string; done: boolean; signX: number }[], stars: { alive: boolean; pt: { x: number; y: number } }[]): number {
+    const p = sim.players[pi]!;
+    const st = stations.find((s) => !s.done);
+    if (!st) return 0;
+    let bits = 0;
+    const tick = sim.tick;
+    const goTo = (x: number): void => {
+      if (p.x < x - 20) bits |= Btn.Right;
+      else if (p.x > x + 20) bits |= Btn.Left;
+    };
+    switch (st.goal) {
+      case 'walk':
+        bits |= Btn.Right;
+        break;
+      case 'jump': {
+        bits |= Btn.Right;
+        let block = false;
+        for (const s of sim.geo.solids) if (s.x > p.x && s.x < p.x + 110 && s.y < p.y - 4) block = true;
+        if (block && p.grounded) this.jumpHold = 30;
+        break;
+      }
+      case 'crouch':
+        if (p.x < st.signX - 100) bits |= Btn.Right;
+        else bits |= Btn.Down;
+        break;
+      case 'shoot':
+        goTo(st.signX + 100);
+        bits |= Btn.Shoot;
+        break;
+      case 'aim':
+        goTo(st.signX + 60);
+        if (Math.abs(p.x - (st.signX + 60)) < 30) bits = Btn.Lock | Btn.Up | Btn.Right | Btn.Shoot;
+        break;
+      case 'dash':
+        bits |= Btn.Right;
+        if (p.grounded && p.x > 4330 && p.x < 4420) this.jumpHold = 30;
+        if (!p.grounded && p.vy > -250 && p.x > 4430 && p.airDash && this.dashCd === 0) {
+          bits |= Btn.Dash;
+          this.dashCd = 60;
+        }
+        break;
+      case 'parry': {
+        const s = stars.find((x) => x.alive);
+        if (s) {
+          goTo(s.pt.x);
+          if (p.grounded && Math.abs(p.x - s.pt.x) < 30) this.jumpHold = 14;
+          if (!p.grounded && this.parryCd === 0 && Math.abs(s.pt.y - (p.y - 70)) < 100 && Math.abs(s.pt.x - p.x) < 70) {
+            this.parryCd = 25;
+            this.jumpHold = 0;
+            return bits | Btn.Jump;
+          }
+        } else bits |= Btn.Right;
+        break;
+      }
+      case 'ex':
+        goTo(st.signX + 100);
+        if (Math.abs(p.x - (st.signX + 100)) < 40 && p.cards >= 1 && tick % 20 === 0) bits |= Btn.Ex;
+        break;
+      case 'super':
+        goTo(st.signX + 150);
+        if (Math.abs(p.x - (st.signX + 150)) < 40 && p.cards >= 5 && tick % 20 === 0) bits |= Btn.Ex;
+        bits |= Btn.Shoot;
+        break;
+    }
+    if (this.jumpHold > 0) {
+      bits |= Btn.Jump;
+      this.jumpHold--;
+    }
+    if (this.dashCd > 0) this.dashCd--;
+    if (this.parryCd > 0) this.parryCd--;
     return bits;
   }
 

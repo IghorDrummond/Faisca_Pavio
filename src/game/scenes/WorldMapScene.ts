@@ -190,6 +190,7 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private openNode(n: MapNode): void {
+    if (this.modal) return;
     const s = GameState.save!;
     if (!nodeUnlocked(s, n)) {
       AudioService.play('ui_denied', { bus: 'voice' });
@@ -347,7 +348,7 @@ export class WorldMapScene extends Phaser.Scene {
       this.prefetch(node);
     } else if (npc) this.prompt.setText(`▶ Conversar com ${npc.name}`);
     else this.prompt.setText('');
-    if (InputService.menu('confirm')) {
+    if (InputService.menu('confirm') && (node || npc)) {
       if (node) this.openNode(node);
       else if (npc) {
         const lines = [...npc.lines];
@@ -358,15 +359,16 @@ export class WorldMapScene extends Phaser.Scene {
         } else if (npc.givesCoin) lines[lines.length - 1] = 'Já te dei a moedinha, sô!';
         this.say(lines, npc.name);
       }
+      // o Enter que abriu o cartão/diálogo não pode ser reprocessado como pausa neste tick
+      InputService.endTick();
+      return;
     }
-    if (bits & Btn.Ex || InputService.menu('back')) {
-      if (bits & Btn.Ex) {
-        InputService.endTick();
-        this.openEquip();
-        return;
-      }
+    if (bits & Btn.Ex) {
+      InputService.endTick();
+      this.openEquip();
+      return;
     }
-    if (InputService.menu('pause')) {
+    if (InputService.pauseOnly()) {
       InputService.endTick();
       this.openPauseMenu();
       return;
@@ -386,6 +388,7 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private openPauseMenu(): void {
+    if (this.modal) return;
     const items: MenuItem[] = [
       { kind: 'button', label: () => t('resume'), onSelect: () => this.closeModal() },
       {

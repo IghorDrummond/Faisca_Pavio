@@ -49,7 +49,7 @@ export interface PlayerSlot {
 const MENU_REPEAT_DELAY = 22;
 const MENU_REPEAT_RATE = 6;
 
-class InputServiceImpl {
+export class InputServiceImpl {
   private keys = new Set<string>();
   private keysPressedEdge = new Set<string>();
   private pads = new Map<number, PadState>();
@@ -225,7 +225,7 @@ class InputServiceImpl {
   /** Tecla de entrada do P2 no teclado dividido. */
   keyboardJoinPressed(): boolean {
     const codes = SettingsService.get('keys').split2.jump;
-    return codes.some((c) => this.keys.has(c)) && !this.slots[1]!.joined;
+    return codes.some((c) => this.keys.has(c) || this.keysPressedEdge.has(c)) && !this.slots[1]!.joined;
   }
 
   joinPlayer2(via: 'keyboard' | number): void {
@@ -328,7 +328,9 @@ class InputServiceImpl {
   // Menus: combinação de todos os dispositivos, com repetição ao segurar
 
   private menuRaw(a: MenuAction): boolean {
-    const k = this.keys;
+    // tecla segurada OU apertada desde o último tick: um toque rápido (keydown+keyup entre dois
+    // polls) não pode ser perdido
+    const k = { has: (c: string) => this.keys.has(c) || this.keysPressedEdge.has(c) };
     const solo = SettingsService.get('keys').solo;
     let held = false;
     switch (a) {
@@ -401,6 +403,14 @@ class InputServiceImpl {
 
   menu(a: MenuAction): boolean {
     return this.enabled && this.menuFired.has(a);
+  }
+
+  /**
+   * Pausa "pura": P/Esc/Start, mas não Enter. Em telas onde Enter também confirma (mapa, menu de
+   * pausa), a mesma tecla não pode disparar as duas ações no mesmo tick.
+   */
+  pauseOnly(): boolean {
+    return this.menu('pause') && !this.menu('confirm');
   }
 
   /** Consome o flag de "qualquer botão". */

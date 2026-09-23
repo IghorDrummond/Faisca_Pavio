@@ -303,7 +303,7 @@ export type AttackAction =
   | { t: number; do: 'hazard'; hazard: HazardDef }
   | { t: number; do: 'anim'; anim: string; body?: string }
   | { t: number; do: 'move'; x: number; y: number; time: number; body?: string; ease?: boolean }
-  | { t: number; do: 'jump'; x: number | 'player' | 'opposite'; height: number; time: number; body?: string }
+  | { t: number; do: 'jump'; x: number | 'player' | 'opposite'; height: number; time: number; body?: string; minX?: number; maxX?: number }
   | { t: number; do: 'chase'; speed: number; time: number; body?: string }
   | { t: number; do: 'sound'; id: string }
   | { t: number; do: 'shake'; amount: number }

@@ -562,6 +562,8 @@ export class BossSim {
           tx = WORLD_W - b.x;
         } else tx = a.x;
         tx = Math.max(this.def.arena.left + 180, Math.min(this.def.arena.right - 180, tx));
+        if (a.minX !== undefined) tx = Math.max(a.minX, tx);
+        if (a.maxX !== undefined) tx = Math.min(a.maxX, tx);
         this.startJump(b, tx, secToTicks(a.time), a.height);
         break;
       }

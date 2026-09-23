@@ -308,21 +308,32 @@ export function analyzeAirAttack(boss: BossDef, phaseIndex: number, attackId: st
     sim.step();
     sim.events.clear();
     danger.fill(0);
-    for (let gy = 4; gy < H - 4; gy++) {
-      for (let gx = 3; gx < W - 3; gx++) {
-        const cx = gx * G + G / 2;
-        const cy = gy * G + G / 2;
-        let d = 0;
-        for (const s of sim.enemyShots.items) {
-          if (s.active && s.warn === 0 && circleAabbRaw(s.x, s.y, s.r * 0.9, cx, cy, r, r * 0.75)) {
-            d = 1;
-            break;
-          }
+    // rasteriza cada objeto só nas células ao seu alcance (bem mais rápido que célula × objeto)
+    const mark = (x0: number, y0: number, x1: number, y1: number, test: (cx: number, cy: number) => boolean): void => {
+      const ga = Math.max(3, Math.floor((x0 - r) / G));
+      const gb = Math.min(W - 4, Math.ceil((x1 + r) / G));
+      const ha = Math.max(4, Math.floor((y0 - r) / G));
+      const hb = Math.min(H - 5, Math.ceil((y1 + r) / G));
+      for (let gy = ha; gy <= hb; gy++) {
+        for (let gx = ga; gx <= gb; gx++) {
+          const i = gy * W + gx;
+          if (danger[i]) continue;
+          if (test(gx * G + G / 2, gy * G + G / 2)) danger[i] = 1;
         }
-        if (!d) for (const h of sim.hazards.items) if (h.active && h.hits({ x: cx, y: cy, hw: r, hh: r * 0.75 })) d = 1;
-        if (!d) for (const tg of sim.bossPartBoxes) if (tg.contact && Math.abs(tg.x - cx) < tg.hw + r && Math.abs(tg.y - cy) < tg.hh + r * 0.75) d = 1;
-        danger[gy * W + gx] = d;
       }
+    };
+    for (const s of sim.enemyShots.items) {
+      if (!s.active || s.warn > 0) continue;
+      const rr = s.r * 0.9;
+      mark(s.x - rr, s.y - rr, s.x + rr, s.y + rr, (cx, cy) => circleAabbRaw(s.x, s.y, rr, cx, cy, r, r * 0.75));
+    }
+    for (const h of sim.hazards.items) {
+      if (!h.active || !h.damaging) continue;
+      mark(0, 0, 1920, 1080, (cx, cy) => h.hits({ x: cx, y: cy, hw: r, hh: r * 0.75 }));
+    }
+    for (const tg of sim.bossPartBoxes) {
+      if (!tg.contact) continue;
+      mark(tg.x - tg.hw, tg.y - tg.hh, tg.x + tg.hw, tg.y + tg.hh, () => true);
     }
     next.fill(0);
     let any = false;

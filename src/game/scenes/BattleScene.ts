@@ -77,7 +77,7 @@ export class BattleScene extends Phaser.Scene {
       else AudioService.sequencer.tempoUp(v);
     };
     this.add.rectangle(960, 540, 1920, 1080, 0x2a1d14).setDepth(-200);
-    this.view = new BattleView(this, this.sim, this.bossId);
+    this.view = new BattleView(this, this.sim, this.bossId, this.params.kind === 'stage' ? this.params.id : null);
     this.film = attachFilm(this);
     this.stepper.reset();
     this.stepper.timeScale = SettingsService.get('gameSpeed');
@@ -222,7 +222,8 @@ export class BattleScene extends Phaser.Scene {
     this.updateMusicLayer();
     this.view.render(this.stepper.alpha, frameMs / 1000);
     const cam = this.cameras.main;
-    cam.setScroll(-this.view.shake.x, -this.view.shake.y);
+    // câmera: fixa nos chefes; segue (só avançando) no run'n'gun/tutorial
+    cam.setScroll(this.sim.viewLeft - this.view.shake.x, -this.view.shake.y);
     this.film?.tick(frameMs);
   }
 

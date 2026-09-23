@@ -9,6 +9,7 @@ import { FxPool } from '../fx/FxPool';
 import { Shake } from '../fx/Shake';
 import { BOSS_VISUALS, type BossVisual } from './bossVisuals';
 import { AssetPackLoader } from '../assets';
+import { StageView } from './StageView';
 
 const PLAYER_ORIGIN_Y = 208 / 220;
 const AIM_ANIM = ['aim_fwd', 'aim_diagdown', 'aim_down', 'aim_diagdown', 'aim_fwd', 'aim_diagup', 'aim_up', 'aim_diagup'];
@@ -41,6 +42,7 @@ export class BattleView {
   private warnGfx: Phaser.GameObjects.Graphics;
   private beamGfx: Phaser.GameObjects.Graphics;
   private layers: { img: Phaser.GameObjects.Image; sway: number; baseY: number }[] = [];
+  private scrollers: { ts: Phaser.GameObjects.TileSprite; speed: number }[] = [];
   private visual: BossVisual | null;
   private extra = new Map<string, Phaser.GameObjects.Sprite>();
   private time = 0;
@@ -48,7 +50,9 @@ export class BattleView {
   private starMode = false;
   outline = false;
 
-  constructor(scene: Phaser.Scene, sim: BattleSim, bossId: string | null) {
+  readonly stage: StageView | null;
+
+  constructor(scene: Phaser.Scene, sim: BattleSim, bossId: string | null, stageId: string | null = null) {
     this.scene = scene;
     this.sim = sim;
     this.visual = bossId ? (BOSS_VISUALS[bossId] ?? null) : null;
@@ -56,7 +60,8 @@ export class BattleView {
     this.gfx = scene.add.graphics().setDepth(18);
     this.warnGfx = scene.add.graphics().setDepth(45);
     this.beamGfx = scene.add.graphics().setDepth(34);
-    this.buildLayers();
+    this.stage = stageId ? new StageView(scene, sim, stageId) : null;
+    if (!this.stage) this.buildLayers();
     for (const p of sim.players) this.players.push(this.makePlayer(p));
     for (let i = 0; i < 260; i++) this.enemyPool.push(scene.add.sprite(-500, -500, 'fx', 'ep_seed_0').setVisible(false).setDepth(40));
     for (let i = 0; i < 140; i++) this.shotPool.push(scene.add.sprite(-500, -500, 'fx', 'shot_reta_0').setVisible(false).setDepth(35).setAlpha(0.9));
@@ -79,10 +84,17 @@ export class BattleView {
     if (!v) return;
     for (const l of v.layers) {
       if (!this.scene.textures.exists(l.key)) continue;
+      const tex = this.scene.textures.get(l.key).getSourceImage() as { width: number; height: number };
+      const sc = 1920 / tex.width;
+      if (l.scroll) {
+        // rolagem contínua em parallax (fase aérea)
+        const ts = this.scene.add.tileSprite(0, l.y, tex.width, tex.height, l.key).setOrigin(0, 0).setScale(sc).setDepth(l.depth).setAlpha(l.alpha ?? 1);
+        this.scrollers.push({ ts, speed: l.scroll / sc });
+        continue;
+      }
       const img = this.scene.add.image(0, l.y, l.key).setOrigin(0, 0).setDepth(l.depth).setAlpha(l.alpha ?? 1);
-      const tex = this.scene.textures.get(l.key).getSourceImage() as { width: number };
       // camadas renderizadas em meia resolução são esticadas para 1920 de largura
-      img.setScale(1920 / tex.width);
+      img.setScale(sc);
       this.layers.push({ img, sway: l.sway ?? 0, baseY: l.y });
     }
   }
@@ -215,6 +227,8 @@ export class BattleView {
     for (const l of this.layers) {
       if (l.sway) l.img.y = l.baseY + Math.sin(this.time * 0.8) * l.sway;
     }
+    for (const s of this.scrollers) s.ts.tilePositionX += s.speed * dt;
+    this.stage?.render(alpha, this.time);
     this.renderBoss(alpha);
     this.renderHazards(alpha);
     this.renderEnemyShots(alpha);
@@ -235,7 +249,7 @@ export class BattleView {
       let spr = this.bodies.get(body.id);
       if (!spr) {
         spr = this.scene.add.sprite(body.x, body.y, 'fx', 'impact_0').setOrigin(bv.origin[0], bv.origin[1]).setDepth(bv.depth ?? 10);
-        const atlas = this.sim.config.boss?.id ?? '';
+        const atlas = this.sim.boss?.def.id ?? '';
         spr.setScale((bv.scale ?? 1) / AssetPackLoader.atlasScale(atlas));
         this.bodies.set(body.id, spr);
       }
@@ -244,6 +258,10 @@ export class BattleView {
       if (!spr.visible) continue;
       spr.x = lerp(body.px, body.x, alpha);
       spr.y = lerp(body.py, body.y, alpha);
+      if (bv.originFor) {
+        const o = bv.originFor(b.phaseIndex);
+        if (spr.originX !== o[0] || spr.originY !== o[1]) spr.setOrigin(o[0], o[1]);
+      }
       if (bv.flip) spr.setFlipX(body.facing === 1);
       const key = bv.anim(b.phaseIndex, body.anim, b.state);
       if (key && this.scene.anims.exists(key) && spr.anims.currentAnim?.key !== key) spr.play(key);
@@ -296,7 +314,9 @@ export class BattleView {
     const hv = this.visual?.hazards ?? {};
     for (const h of this.sim.hazards.items) {
       if (!h.active || h.phase === 'delay') continue;
-      const vis = hv[h.kind];
+      let vis = hv[h.kind];
+      // quadro não carregado (perigo reaproveitado de outra ilha) → desenho geométrico
+      if (vis?.image && !this.hasFrame(vis.image)) vis = vis.kind === 'pendulum' ? undefined : { kind: vis.kind === 'crosser' ? 'crosser' : 'shock', color: 0x8a5a3a };
       const warn = h.phase === 'warn';
       if (h.type === 'sweep') {
         const a = lerp(h.pangle, h.angle, alpha) + (warn ? Math.sin(this.time * 40) * 0.004 : 0);
@@ -428,6 +448,11 @@ export class BattleView {
 
   private atlasCache = new Map<string, string>();
 
+  hasFrame(frame: string): boolean {
+    const a = this.atlasFor(frame);
+    return this.scene.textures.exists(a) && this.scene.textures.get(a).has(frame);
+  }
+
   /** Escala do atlas onde o quadro está. */
   scaleOf(frame: string): number {
     return AssetPackLoader.atlasScale(this.atlasFor(frame));
@@ -437,7 +462,7 @@ export class BattleView {
   atlasFor(frame: string): string {
     const c = this.atlasCache.get(frame);
     if (c) return c;
-    for (const key of ['fx', 'players', this.sim.config.boss?.id ?? '', 'enemies1', 'enemies2', 'stage1', 'stage2', 'agulha', 'gramofone', 'bigorna', 'fuligem', 'maestro', 'tutorial']) {
+    for (const key of ['fx', 'players', this.sim.boss?.def.id ?? '', 'enemies', 'cortina', 'fole', 'cuco', 'agulha', 'gramofone', 'bigorna', 'fuligem', 'maestro']) {
       if (key && this.scene.textures.exists(key) && this.scene.textures.get(key).has(frame)) {
         this.atlasCache.set(frame, key);
         return key;
@@ -688,6 +713,7 @@ export class BattleView {
 
   /** Reset visual completo (retry): esconde tudo e zera efeitos. */
   reset(): void {
+    this.stage?.reset();
     this.fx.clear();
     this.shake.reset();
     for (const s of this.enemyPool) s.setVisible(false);

@@ -34,6 +34,8 @@ export class Canvas {
   rng: Rng;
 
   constructor(w: number, h: number, boil = 0) {
+    // ids de <defs> só precisam ser únicos dentro de cada SVG → saída determinística (cache estável)
+    idCounter = 0;
     this.w = w;
     this.h = h;
     this.boil = boil;
